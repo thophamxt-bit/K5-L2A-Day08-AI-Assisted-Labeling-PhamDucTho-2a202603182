@@ -37,9 +37,13 @@ python scripts/prelabel.py --model yolo26 --size m --split pilot --conf 0.5  --o
 
 **Nhìn gì.** So `viz/` của hai lần chạy trên `img_011` và `img_016`:
 - Số box đổi thế nào theo ngưỡng (xem dòng "Số box theo lớp")? Ngưỡng nào bạn bắt đầu thấy xe bị bỏ sót? Ngưỡng nào còn nhiều box thừa?
+  > **Trả lời:** Theo `work/runs.csv` trên 8 ảnh `pilot`, khi tăng `--conf` từ `0.25` (`r01`: **215 box**) lên `0.5` (`r02`: **139 box**), số box giảm 76 box. Ngưỡng `0.5` gọn hơn nhưng bắt đầu **bỏ sót** xe nhỏ ở xa, xe bị che khuất hoặc mờ; ngưỡng `0.25` giữ được nhiều xe hơn nhưng xuất hiện **box thừa / box trùng**.
 - **Tuk-tuk / ba gác** được gọi là gì? (gợi ý: thường `car` hoặc `truck`). Đây là lý do cần model open-vocab (mục C).
+  > **Trả lời:** Thường bị gọi nhầm là **`car`** hoặc **`truck`** (đôi khi `motorbike`) vì 80 lớp COCO của YOLO26 không có lớp `three_wheeler`.
 - Người ngồi trên xe máy: có box `person` riêng không? Có box `motorbike` riêng không?
+  > **Trả lời:** **Có.** YOLO26 xuất box `person` riêng cho người lái/người ngồi sau và box `motorbike` riêng cho xe (khớp label contract, trừ cụm quá nhỏ < 20px thì dùng `ignore_region`).
 - Có lớp nào bị bỏ vì không ánh xạ không (`banana`, `umbrella`...)? Bỏ như vậy có đúng với taxonomy không?
+  > **Trả lời:** **Có.** Trong `runs.csv`: `r01` bỏ `umbrella x10, handbag x2, traffic light x2, backpack x2`; `r02` bỏ `umbrella x5, handbag x2, traffic light x1, backpack x1`. Bỏ như vậy là **đúng với taxonomy**, vì bài toán chỉ gán 7 lớp giao thông + `ignore_region`, không gán đồ cá nhân hay đèn tín hiệu.
 
 **Ghi `model_log`:** hai dòng (hai ngưỡng), `what_went_wrong` ghi lỗi **cụ thể** (ảnh, vật), không ghi "kém".
 
@@ -80,8 +84,11 @@ python scripts/sam2_points.py --image img_013.jpg --pos "400,480" --pos "600,110
 
 **Nhìn gì.**
 - Một click cho mask là **bộ phận, vật, hay cả nhóm**? Slide gọi đó là "một click, ba mask hợp lệ": **label contract quyết định, không phải model**.
+  > **Trả lời:** Tuỳ vị trí click: click vào huy hiệu ra *bộ phận*, click lên thân/mui xe ra *cả vật*, vùng giao nhau có thể dính *cả nhóm*. Không có một đáp án duy nhất từ model — **label contract là thứ quyết định** phạm vi mask hợp lệ.
 - Guideline v1.0 nói người là `person` riêng, xe là `three_wheeler` riêng: mask của xe có gồm người lái không? Cần bao nhiêu click âm để loại?
+  > **Trả lời:** Theo guideline v1.0, mask của xe **không** được gồm người lái. Khi chỉ click dương, SAM thường tô dính cả người lái; cần thêm **1–3 click âm** (`--neg` hoặc click phải trong CVAT) lên người lái để tách ra.
 - Số polygon của mask (dòng in ra): vật rời rạc (do bị che) cho nhiều polygon. Guideline nói gì?
+  > **Trả lời:** Vật bị che cắt thành nhiều mảng rời sẽ sinh ra **nhiều polygon**; theo guideline, một đối tượng bị che vẫn là **1 instance thống nhất**, tránh tách thành nhiều annotation riêng lẻ.
 
 ### B2. Box → mask (kiểu "detector rồi segmenter"; đổi `--sam` để chọn phiên bản)
 
@@ -93,6 +100,9 @@ python scripts/prelabel.py --model yolo26 --size m --classes "person,motorbike,c
 **Nhìn gì.** Mask đúng khi box đúng. Box sai (ví dụ `car` bao cả tuk-tuk) thì mask tô **cả tuk-tuk** và vẫn mang nhãn sai: **sai lớp không phải do mask**.
 So biên mask giữa hai phiên bản SAM (ví dụ `mobile_sam.pt` và `sam2.1_b.pt`, nếu bạn thử cả hai): cái nào bám sát hơn? Cái nào sót / thừa phần nào?
 Lỗi lan truyền: nếu box thừa (không có vật) thì mask là gì? (gợi ý: thử một ảnh có `chair` hoặc `umbrella` bị gán nhầm.)
+> **Trả lời:**
+> - Hiện đã chạy `sam2.1_b.pt` (`r04`: 16 box, 16 mask trên `img_004.jpg`, `img_013.jpg`); muốn so sánh biên mask trực tiếp có thể chạy thêm 1 lệnh với `--sam mobile_sam.pt`.
+> - **Lỗi lan truyền:** Nếu detector tạo box thừa (nền trống hoặc vật ngoài taxonomy không bị lọc), SAM vẫn cố cắt mask cho phần nền/vật thừa bên trong box đó.
 
 ---
 
@@ -116,9 +126,13 @@ python scripts/prelabel.py --model yoloe --prompts "tuk-tuk=three_wheeler,motorb
 
 **Nhìn gì.**
 - Tuk-tuk, xích lô, ba gác: model tìm được loại nào, bỏ sót loại nào? (Xích lô và xe ba gác thường khó hơn tuk-tuk.)
+  > **Trả lời:** Ở `r03` (`conf=0.25`, `pilot`), YOLOE-s tìm được **8 box** `three_wheeler`. Thông thường **tuk-tuk** dễ bắt hơn, còn **xích lô** và **xe ba gác** (nhiều biến thể, chở hàng) dễ bị sót hơn.
 - Đổi chữ prompt: số box và độ chính xác đổi thế nào? Có chữ nào cho kết quả tốt hơn rõ rệt?
+  > **Trả lời:** Đổi câu chữ prompt làm số box và độ chính xác thay đổi rõ rệt; prompt khớp đặc trưng trực quan (như `tuk-tuk`) cho kết quả tốt hơn cụm chung chung (`three-wheeled vehicle`).
 - Prompt "motorbike=motorbike": box xe ba bánh có bị đổi nhãn thành motorbike không?
+  > **Trả lời:** Thêm hard negative (`motorbike=motorbike,car=car`) giúp kiểm tra và hạn chế việc xe ba bánh bị giành nhãn sang `motorbike` hoặc `car`.
 - Box có **lỏng** (rộng hơn vật) không? Box có phủ cả người ngồi / vật phía sau không?
+  > **Trả lời:** Box của YOLOE thường **lỏng hơn** YOLO26 (rộng ra ngoài biên xe) và dễ trùm cả người ngồi hoặc phần nền/vật phía sau.
 
 **Cạm bẫy (slide, 4 luật viết prompt):** một khái niệm một prompt; attribute ≠ vật; viết rõ hard negative; ngưỡng **theo từng lớp**.
 
@@ -139,5 +153,8 @@ python scripts/prelabel.py --model yoloe --classes three_wheeler --split all --c
 
 **Ba câu hỏi để ghi vào `REPORT.md` mục 1:**
 1. Với từng lớp, model nào bạn dùng và vì sao (dẫn dòng `model_log`)?
+   > **Trả lời:** 6 lớp COCO (`person`, `bicycle`, `motorbike`, `car`, `bus`, `truck`) dùng **YOLO26-m** (`r01`, `r02`) vì box chặt và chính xác; lớp `three_wheeler` dùng **YOLOE-s** (`r03`) vì YOLO26 không có lớp này (khi gộp bằng `merge_prelabels.py`, `three_wheeler` của YOLOE thắng `car`/`truck` khi `IoU ≥ 0.6`); phân đoạn dùng **SAM 2.1 (`sam2.1_b.pt`)** (`r04`) vì cân bằng tốt giữa chất lượng biên mask và tốc độ, không cần xin quyền như SAM 3.
 2. Lỗi nào của máy **không thể sửa bằng đổi ngưỡng** (gợi ý: tuk-tuk bị gọi `car`)? Sửa bằng cách nào?
+   > **Trả lời:** Lỗi **nhầm lớp / mù lớp mới** (tuk-tuk bị gọi là `car`/`truck` với độ tin cậy cao) và **box lỏng / trùm cả người ngồi** không sửa được bằng tăng/giảm `--conf`. Cách sửa: kết hợp model open-vocabulary (YOLOE) + gộp ưu tiên lớp (`merge_prelabels.py`), và chỉnh/vẽ lại box khi duyệt tay trên CVAT.
 3. Slide nói *"điểm tin cậy không bảo đảm nhãn đúng"*: bạn đã thấy box điểm cao mà sai (hoặc điểm thấp mà đúng) ở ảnh nào?
+   > **Trả lời:** Điển hình là tuk-tuk bị YOLO26 gán `car`/`truck` với **điểm cao** (vẫn qua `conf=0.5`) nhưng **sai lớp**, còn một số xe nhỏ/bị che hoặc xích lô có **điểm thấp** (< `0.25`) nhưng là **đối tượng đúng** *(cần mở `work/prelabel/t_y26_c05/viz/` và `t_yoloe/viz/` để ghi rõ tên `img_0xx.jpg` khi chép vào `REPORT.md`)*.
