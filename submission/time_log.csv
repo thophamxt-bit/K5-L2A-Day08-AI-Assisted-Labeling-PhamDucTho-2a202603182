@@ -1,1 +1,3 @@
 step,images,minutes,note
+gold_manual,4,20,Gan tay hoan toan tren CVAT (Task gold-manual)
+batch_review,24,45,Duyet pre-label da cai 12 bay tren CVAT (Task batch-review)

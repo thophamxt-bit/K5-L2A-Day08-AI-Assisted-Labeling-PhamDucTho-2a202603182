@@ -1,0 +1,8 @@
+image,object_id,error_type,reviewer,note
+img_003.jpg,#10,thua,PhamDucTho,Box three_wheeler 0.21 trung lap voi #27 va #3 tren cung xe ba gac
+img_003.jpg,#3,sai_vi_tri_kich_thuoc,PhamDucTho,Box #3 chi bao nua duoi xe ba gac (thieu phan mai che so voi #27)
+img_006.jpg,,khong,PhamDucTho,"Cac box person, motorbike, bicycle hop ly"
+img_014.jpg,#164,thua,PhamDucTho,Box motorbike 0.12 trung/nhieu o goc phai xa
+img_031.jpg,#526,thua,PhamDucTho,Gan nham cai mu luoi trai mau cam tren ke hang thanh person (0.34)
+img_031.jpg,#527,sai_vi_tri_kich_thuoc,PhamDucTho,"Box person #527 bi cat ngang hong, thieu phan chan nguoi ban hang"
+img_035.jpg,#626,thua,PhamDucTho,Box three_wheeler 0.38 trung lap voi #627 (0.48) tren cung chiec xich lo
